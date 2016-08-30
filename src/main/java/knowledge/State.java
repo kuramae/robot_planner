@@ -1,5 +1,6 @@
 package knowledge;
 
+import autovalue.shaded.com.google.common.common.collect.Sets;
 import com.google.auto.value.AutoValue;
 
 import java.util.Set;
@@ -19,6 +20,10 @@ public abstract class State {
     public boolean satisfiesAction(Action currentGoal) {
         return getState().containsAll(currentGoal.getPositivePreconditions()) &&
                 currentGoal.getNegativePreconditions().stream().noneMatch(p -> getState().contains(p));
+    }
+
+    public Set<Fact> preconditionSupportSet(Action currentGoal) {
+        return Sets.intersection(getState(), currentGoal.getPositivePreconditions());
     }
 
     @Override

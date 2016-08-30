@@ -48,6 +48,11 @@ public abstract class Fact {
         return getPredicate().wellFormed();
     }
 
+    @Override
+    public String toString() {
+        return (getSign() ? "" : "not ") + getPredicate().toString();
+    }
+
     @AutoValue.Builder
     public abstract static class Builder {
 

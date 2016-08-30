@@ -84,7 +84,7 @@ public abstract class Predicate {
 
     @Override
     public String toString() {
-        return getName() + " " + String.join(" ", getArguments());
+        return getName() + (getArguments().isEmpty() ? "" : " " + String.join(" ", getArguments()));
     }
 
     public boolean wellFormed() {

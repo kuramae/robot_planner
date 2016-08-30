@@ -82,7 +82,7 @@ public abstract class Action {
     public Set<Action> instantiate(Problem problem) {
         Set<String> vars = allVars();
         Set<Unification> unifications = problem.instantiateVariables(vars);
-        return unifications.stream().map(this::applyUnification).collect(Collectors.toSet());
+        return unifications.stream().map(this::applyUnification).filter(Action::wellFormed).collect(Collectors.toSet());
     }
 
     private Set<String> allVars() {
