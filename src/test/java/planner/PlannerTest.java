@@ -3,9 +3,7 @@ package planner;
 import autovalue.shaded.com.google.common.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableList;
 import knowledge.*;
-import org.junit.Ignore;
 import org.junit.Test;
-import planner.strips.StripsPlanner;
 
 import java.util.Optional;
 
@@ -24,8 +22,13 @@ public abstract class PlannerTest {
                                 Action.parse("pickup X: ontable X, clear X, handempty -> holding X, " +
                                         "not ontable X, not clear X, not handempty X")
                         ))
+                .setConstraints(
+                        ImmutableSet.of(
+                            Constraint.parse("holding X -> not holding Y"),
+                            Constraint.parse("on X Y -> not on X Z"),
+                            Constraint.parse("on X Y -> not on Z Y")))
                 .setTypes(ImmutableSet.of(
-                        TypeDeclaration.parse("X, Y: s3, s5")
+                        TypeDeclaration.parse("X, Y, Z: s3, s5")
                 ))
                 .setInitialState(
                         State.builder().setState(ImmutableSet.of(
@@ -53,8 +56,13 @@ public abstract class PlannerTest {
                                 Action.parse("unstack X: on X Y, clear X, handempty -> holding X, clear Y, " +
                                         "not handempty, not clear X, not on X Y")
                         ))
+                .setConstraints(
+                        ImmutableSet.of(
+                                Constraint.parse("holding X -> not holding Y"),
+                                Constraint.parse("on X Y -> not on X Z"),
+                                Constraint.parse("on X Y -> not on Z Y")))
                 .setTypes(ImmutableSet.of(
-                        TypeDeclaration.parse("X, Y: s3, s2, s5")
+                        TypeDeclaration.parse("X, Y, Z: s3, s2, s5")
                 ))
                 .setInitialState(
                         State.builder().setState(ImmutableSet.of(
@@ -72,8 +80,7 @@ public abstract class PlannerTest {
                 ImmutableList.of(Predicate.parse("unstack s3"), Predicate.parse("stack s3 s5"))).build());
     }
 
-    @Ignore
-    @Test(timeout=5000)
+    @Test
     public void testScenario1() {
         Problem problem = Problem.builder()
                 .setActions(
@@ -87,8 +94,13 @@ public abstract class PlannerTest {
                             Action.parse("unstack X: on X Y, clear X, handempty -> holding X, clear Y, " +
                                     "not handempty, not clear X, not on X Y")
                             ))
+                .setConstraints(
+                        ImmutableSet.of(
+                                Constraint.parse("holding X -> not holding Y"),
+                                Constraint.parse("on X Y -> not on X Z"),
+                                Constraint.parse("on X Y -> not on Z Y")))
                 .setTypes(ImmutableSet.of(
-                            TypeDeclaration.parse("X, Y: s2, s4, s3, s5")
+                            TypeDeclaration.parse("X, Y, Z: s2, s4, s3, s5")
                 ))
                 .setInitialState(
                         State.builder().setState(ImmutableSet.of(
@@ -99,14 +111,13 @@ public abstract class PlannerTest {
                                 Fact.parse("on s4 s5")))
                             .build()
                 ).build();
-        Planner planner = new StripsPlanner();
+        Planner planner = getPlanner();
         Optional<Plan> plan = planner.plan(Fact.parse("on s3 s5"), problem);
         assertThat(plan.isPresent()).isTrue();
         assertThat(plan).isEqualTo(Plan.builder().setSequence(ImmutableList.of(Predicate.parse("unstack s5 s4"))));
     }
 
-    @Ignore
-    @Test(timeout=5000)
+    @Test
     public void testScenario2() {
         Problem problem = Problem.builder()
                 .setActions(
@@ -114,16 +125,24 @@ public abstract class PlannerTest {
                                 Action.parse("putdown X: holding X -> ontable X, handempty, clear X," +
                                         "not holding X"),
                                 Action.parse("unstack X: on X Y, clear X, handempty -> holding X, clear Y, " +
-                                        "not handempty, not clear X, not on X Y")
+                                        "not handempty, not clear X, not on X Y"),
+                                Action.parse("pickup X: ontable X, clear X, handempty -> holding X, " +
+                                        "not ontable X, not clear X, not handempty X")
                         ))
                 .setTypes(ImmutableSet.of(
-                        TypeDeclaration.parse("X, Y: s4, s5")
+                        TypeDeclaration.parse("X, Y, Z: s4, s5")
                 ))
+                .setConstraints(
+                        ImmutableSet.of(
+                                Constraint.parse("holding X -> not holding Y"),
+                                Constraint.parse("on X Y -> not on X Z"),
+                                Constraint.parse("on X Y -> not on Z Y")))
                 .setInitialState(
                         State.builder().setState(ImmutableSet.of(
                                 Fact.parse("clear s4"),
                                 Fact.parse("handempty"),
-                                Fact.parse("on s4 s5")))
+                                Fact.parse("on s4 s5"),
+                                Fact.parse("ontable s5")))
                                 .build()
                 ).build();
         Planner planner = getPlanner();

@@ -1,12 +1,10 @@
 package knowledge;
 
+import autovalue.shaded.com.google.common.common.collect.ImmutableSet;
 import autovalue.shaded.com.google.common.common.collect.Sets;
 import com.google.auto.value.AutoValue;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static knowledge.Constants.*;
@@ -85,6 +83,7 @@ public abstract class Action {
         return unifications.stream().map(this::applyUnification).filter(Action::wellFormed).collect(Collectors.toSet());
     }
 
+
     private Set<String> allVars() {
         return Sets.union(Sets.union(
                 getPredicate().allVars(),
@@ -110,6 +109,23 @@ public abstract class Action {
 
     public Set<Fact> getNegativePreconditions() {
         return getPreconditions().stream().filter(a -> !a.getSign()).map(Fact::flip).collect(Collectors.toSet());
+    }
+
+    public Set<Fact> constraintEffects(Problem problem) {
+        ImmutableSet.Builder<Fact> constraintEffects = ImmutableSet.builder();
+        for (Constraint c : problem.getConstraints()) {
+            for(Fact effect : getPositiveEffects()) {
+                Unification u = c.getAntecendent().unify(effect.getPredicate());
+                if (u.isValid()) {
+                    Constraint instConstraint = c.applyUnification(u);
+                    Set<Constraint> instantiated = instConstraint.instantiate(problem);
+                    instantiated.stream()
+                            .forEach(fullyGroundConst -> constraintEffects.addAll(fullyGroundConst.getConsequents()));
+                }
+            }
+
+        }
+        return constraintEffects.build();
     }
 
     @AutoValue.Builder

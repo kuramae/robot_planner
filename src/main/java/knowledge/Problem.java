@@ -15,6 +15,8 @@ public abstract class Problem {
 
     public abstract Set<TypeDeclaration> getTypes();
 
+    public abstract Set<Constraint> getConstraints();
+
     public static Builder builder() {
         return new AutoValue_Problem.Builder();
     }
@@ -58,6 +60,8 @@ public abstract class Problem {
         public abstract Builder setInitialState(State newInitialState);
 
         public abstract Builder setTypes(Set<TypeDeclaration> newTypes);
+
+        public abstract Builder setConstraints(Set<Constraint> newConstraints);
 
         public abstract Problem build();
     }
