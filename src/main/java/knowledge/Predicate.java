@@ -22,7 +22,7 @@ public abstract class Predicate {
         return Predicate.builder().setArguments(arguments).setName(split[0].trim()).build();
     }
 
-    public Unification unify(Predicate otherPredicate) {
+    Unification unify(Predicate otherPredicate) {
         Unification.Builder builder = Unification.builder();
 
         if (!getName().equals(otherPredicate.getName()) || getArguments().size() != otherPredicate.getArguments().size()) {
@@ -41,7 +41,30 @@ public abstract class Predicate {
         }
     }
 
-    private Unification argumentUnify(String arg1, String arg2) {
+    Set<Unification> instantiate(Problem problem) {
+        // e.g. pr X Y z
+        Set<String> vars = allVars();
+        return problem.instantiateVariables(vars);
+    }
+
+    Predicate applyUnification(Unification unification) {
+        return Predicate.builder()
+                .setName(getName())
+                .setArguments(getArguments().stream().map(s -> applyUnificationToArgument(s, unification)).collect(Collectors.toList()))
+                .build();
+    }
+
+    Set<String> allVars() {
+        Set<String> vars = new HashSet<>();
+        for(String arg : getArguments()) {
+            if (isVariable(arg)) {
+                vars.add(arg);
+            }
+        }
+        return vars;
+    }
+
+    private static Unification argumentUnify(String arg1, String arg2) {
         Unification.Builder builder = Unification.builder();
         if (isVariable(arg1)) {
             return builder.setSubstitutions(ImmutableMap.of(arg1, arg2)).setValid(true).build();
@@ -50,36 +73,14 @@ public abstract class Predicate {
         }
     }
 
-    public static boolean isVariable(String arg) {
+    private static boolean isVariable(String arg) {
         return Character.isUpperCase(arg.charAt(0));
     }
 
-    public Predicate applyUnification(Unification unification) {
-        return Predicate.builder()
-                .setName(getName())
-                .setArguments(getArguments().stream().map(s -> applyUnificationToArgument(s, unification)).collect(Collectors.toList()))
-                .build();
-    }
 
     private String applyUnificationToArgument(String input, Unification unification) {
         String change = unification.getSubstitutions().get(input);
         return change != null ? change : input;
-    }
-
-    public Set<Unification> instantiate(Problem problem) {
-        // e.g. pr X Y z
-        Set<String> vars = allVars();
-        return problem.instantiateVariables(vars);
-    }
-
-    public Set<String> allVars() {
-        Set<String> vars = new HashSet<>();
-        for(String arg : getArguments()) {
-            if (isVariable(arg)) {
-                vars.add(arg);
-            }
-        }
-        return vars;
     }
 
     @Override
