@@ -26,7 +26,7 @@ public abstract class GraphplanLevel {
         return new AutoValue_GraphplanLevel.Builder();
     }
 
-    public static GraphplanLevel initial(State initialState) {
+    static GraphplanLevel initial(State initialState) {
             return builder()
                 .setProposition(initialState)
                 .setAction(Collections.emptySet())

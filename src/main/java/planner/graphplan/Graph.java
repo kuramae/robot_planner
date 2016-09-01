@@ -8,34 +8,51 @@ import planner.Plan;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Graph used for the graphplan algorithm. Compared to literature, this one follows the convention
+ * that each level has a different index
+ * e.g. prop0 |LEVEL 0|-> act0 -> prop1 |LEVEL 1|-> act1 ...
+ * It also supports variables in actions (which is pretty cool) if they are declared.
+ * This class was hacked together, it needs a few extra abstractions (e.g. use an undirected graph class
+ * instead of a multimap). It should also construct each data structure separately.
+ */
 @AutoValue
 public abstract class Graph {
 
-    public static final String KEEP = "keep";
+    static final String KEEP_PREDICATE_NAME = "keep";
 
-    // prop0 |LEVEL 0|-> act0 -> prop1 |LEVEL 1|-> act1 ...
     public abstract ImmutableList<GraphplanLevel> getLevels();
 
-    public static Graph fromInitialState(State initialState) {
+    /**
+     * Initialize graphplan given an initial state
+     */
+    static Graph fromInitialState(State initialState) {
         return builder()
                 .setLevels(ImmutableList.of(GraphplanLevel.initial(initialState)))
                 .build();
     }
 
-    public Graph extendByOneLevel(Problem problem) {
-        HashSet<Action> satisfiedActions = new HashSet<>();
-        ImmutableMultimap<Fact, Action> newPropToActConnections =
-                propositionsToActionConnectionsForNextLevel(problem, satisfiedActions);
+    public static Builder builder() {
+        return new AutoValue_Graph.Builder();
+    }
 
-        HashSet<Fact> conditionsAtNewLevel = new HashSet<>();
-        ImmutableMultimap<Action, Fact> newActToPrepConnections = propositionsForNextLevel(satisfiedActions, conditionsAtNewLevel, problem);
-        State state = State.builder().setState(conditionsAtNewLevel).build();
+    Optional<Plan> extractPlan(Fact goal) {
+        return extractPlan(ImmutableSet.of(goal), level());
+    }
+
+    Graph extendByOneLevel(Problem problem) {
+        HashSet<Action> nextLevelSatisfiedActions = new HashSet<>();
+        ImmutableMultimap<Fact, Action> nextLevelPropositionToActionConnections =
+                propositionsToActionConnectionsForNextLevel(problem, nextLevelSatisfiedActions);
+        HashSet<Fact> nextLevelConditions = new HashSet<>();
+        ImmutableMultimap<Action, Fact> newActToPrepConnections = propositionsForNextLevel(nextLevelSatisfiedActions, nextLevelConditions, problem);
+        State state = State.builder().setState(nextLevelConditions).build();
         ImmutableMultimap<Action, Action> actionMutexesForLastLevel = establishActionMutexesForLastLevel(newActToPrepConnections, state);
         GraphplanLevel level = GraphplanLevel.builder()
-                .setAction(satisfiedActions)
+                .setAction(nextLevelSatisfiedActions)
                 .setProposition(state)
                 .setActionToPropositionConnections(newActToPrepConnections)
-                .setPropositionToActionConnections(newPropToActConnections)
+                .setPropositionToActionConnections(nextLevelPropositionToActionConnections)
                 .setActionMutexes(actionMutexesForLastLevel)
                 .setPropositionMutexes(establishPropositionMutexesForLastLevel(state, actionMutexesForLastLevel, newActToPrepConnections))
                 .build();
@@ -187,10 +204,10 @@ public abstract class Graph {
         newMutexes.put(a2, a1);
     }
 
-    protected Action artificialAction(Fact p) {
+    private Action artificialAction(Fact p) {
         return Action.builder().setPredicate(Predicate.parse("keep " + p.toString()))
-                .setPreconditions(ImmutableSet.<Fact>of(p))
-                .setEffects(ImmutableSet.<Fact>of(p))
+                .setPreconditions(ImmutableSet.of(p))
+                .setEffects(ImmutableSet.of(p))
                 .build();
     }
 
@@ -198,15 +215,7 @@ public abstract class Graph {
         return getLevels().size() - 1;
     }
 
-    public static Builder builder() {
-        return new AutoValue_Graph.Builder();
-    }
-
-    public Optional<Plan> extractPlan(Fact goal) {
-        return extractPlan(ImmutableSet.of(goal), level());
-    }
-
-    public Optional<Plan> extractPlan(Set<Fact> goal, int level) {
+    private Optional<Plan> extractPlan(Set<Fact> goal, int level) {
         if (inconsistentFacts(goal)) {
             return Optional.empty();
         }
@@ -218,7 +227,7 @@ public abstract class Graph {
                 if (plan.isPresent()) {
                     LinkedList<Predicate> newList = new LinkedList<>();
                     newList.addAll(plan.get().getSequence());
-                    newList.addAll(support.stream().map(a -> a.getPredicate()).filter(a -> !a.getName().equals(KEEP)).collect(Collectors.toSet()));
+                    newList.addAll(support.stream().map(a -> a.getPredicate()).filter(a -> !a.getName().equals(KEEP_PREDICATE_NAME)).collect(Collectors.toSet()));
                     return Optional.of(Plan.builder().setSequence(newList).build());
                 }
             }

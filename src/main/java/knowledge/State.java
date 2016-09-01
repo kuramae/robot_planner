@@ -13,7 +13,7 @@ public abstract class State {
         return new AutoValue_State.Builder();
     }
 
-    public boolean satisfies(Fact currentGoal) {
+    public boolean satisfiesGOal(Fact currentGoal) {
         return getState().stream().anyMatch(fact -> currentGoal.unify(fact).isValid());
     }
 
